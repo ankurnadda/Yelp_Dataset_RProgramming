@@ -1,0 +1,65 @@
+library(shiny)
+library(quanteda)
+
+
+#R-code for the 
+yelp<-read.csv("C:/Users/petlogic/Desktop/data mining/project/yelp.csv", stringsAsFactors = FALSE)
+set.seed(2012)
+yelp<-yelp[sample(nrow(yelp)),]
+
+#names(yelp)<-c("category","text")
+
+#to search more on this method
+comm.corpus<-corpus(yelp$text)
+docvars(comm.corpus)<-yelp$category
+yelp.train<-yelp[1:8500,]
+
+
+text.dfm <- dfm(comm.corpus, tolower = TRUE)  #generating document freq matrix
+text.dfm <- dfm_trim(text.dfm, min_count = 5, min_docfreq = 3)  
+text.dfm <- dfm_weight(text.dfm) 
+
+#trining and testing data of dfm 
+text.dfm.train<-text.dfm[1:8500,]
+
+#training the naive-bayes classifier
+nb.classifier<-textmodel_nb(text.dfm.train,yelp.train[,3])
+
+
+
+#shiny server function
+shinyServer(function(input, output) {
+  
+  
+  
+  #print the entered message to console each time the submit button is pressed to check
+  observeEvent(input$btn, {
+    cat("\nEntered Text:", input$message,"\n")
+  })
+  
+  
+  #take an action whenever a button is pressed
+  class<-eventReactive(input$btn,{
+    
+    #extarct corpus from the user entered text message
+    msg=corpus(input$message)
+    ms.dfm<-dfm(msg,tolower=TRUE,stem=TRUE)
+    ms.dfm=dfm_select(ms.dfm,text.dfm.train)
+    #predicting on the entered text by user
+    class=predict(nb.classifier,newdata=ms.dfm)
+    #feed processed user entered text to predict the class
+    #printing the class label
+    toupper(class$nb.predicted)
+    
+    
+  })    
+  
+  output$label <-renderText({
+    if(is.null(input$message)) return()
+    
+    class() 
+    #calling the event function class() from above to print spam or ham after hitting submit button
+    
+  }) 
+  
+})

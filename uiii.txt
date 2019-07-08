@@ -1,0 +1,40 @@
+library(shiny)
+require(shinythemes)
+library(markdown)
+require(rsconnect)
+
+# Define UI for application that draws a histogram
+
+  
+  fluidPage(
+    fluidRow(
+    column(12,offset=4,
+           #sidebarPanel(style="display:block;width:80%",class="col-sm-12",
+           div(class="col-sm-12",
+               textAreaInput("message",
+                             label="Enter a text review",
+                             placeholder="enter here"),
+               p("Eg- The food is really good"),
+               br(),
+               actionButton("btn","submit")
+           )#end div  
+           
+    )#end column
+    ) ,#end row
+    
+    mainPanel(
+      
+      fluidRow(
+        
+        column(12,offset=6,
+               h2("The review is categorized as:", strong((textOutput("label")))),
+               br(),
+               p("")
+        )
+
+      )  #end row
+      
+
+  )#close fluidPage
+  )    
+ 

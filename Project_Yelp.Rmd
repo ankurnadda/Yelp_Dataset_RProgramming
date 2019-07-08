@@ -1,0 +1,126 @@
+---
+title: ' Appendix: Project Code'
+author: "Ankur Nadda, Jing Luo, Vaishnavi Deshpande"
+date: "April 10, 2018"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+require(quanteda)
+require(RColorBrewer)
+require(dplyr)
+require(ggplot2)
+require(pROC)
+```
+```{r}
+yelp<-read.csv("C:/Users/petlogic/Desktop/data mining/project/yelp.csv", stringsAsFactors = FALSE)
+```
+```{r}
+table(yelp$category)
+#View(yelp)
+```
+```{r}
+theme_set(theme_bw())
+ggplot(aes(x=category), data = yelp) + geom_bar(fill="blue", width = 0.5)
+```
+```{r}
+set.seed(2012)
+yelp<-yelp[sample(nrow(yelp)),]
+```
+```{r}
+?corpus
+comm.corpus<-corpus(yelp$text)
+docvars(comm.corpus)<-yelp$category
+?dfm
+```
+```{r}
+##For bad review
+bad.plot <-corpus_subset(comm.corpus, docvar1=="bad")
+bad.plot<-dfm(bad.plot, tolower = TRUE, remove_punct = TRUE, remove_twitter = TRUE, remove_numbers = TRUE, remove=stopwords("SMART"))
+bad.col<-brewer.pal(10, "BrBG")
+textplot_wordcloud(bad.plot, min.freq = 16, color = bad.col)  
+title("Bad Review Wordcloud", col.main = "grey14")
+```
+```{r}
+##For good review
+good.plot <-corpus_subset(comm.corpus, docvar1=="good")
+good.plot<-dfm(good.plot, tolower = TRUE, remove_punct = TRUE, remove_twitter = TRUE, remove_numbers = TRUE, remove=stopwords("SMART"))
+good.col<-brewer.pal(10, "BrBG")
+textplot_wordcloud(good.plot, min.freq = 16, color = good.col)  
+title("Good Review Wordcloud", col.main = "grey14")
+```
+```{r}
+##Frequency plot of most frequently occuring bad features
+features_bad <- textstat_frequency(bad.plot, n = 100)
+features_bad$feature <- with(features_bad, reorder(feature, -frequency))
+```
+```{r}
+ggplot(features_bad, aes(x = feature, y = frequency)) +
+  geom_point(color="red") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Frequency plot of most frequently occuring words in bad reviews")
+```
+```{r}
+##Frequency plot of most frequently occuring good features
+
+features_good <- textstat_frequency(good.plot, n = 100)
+features_good$feature <- with(features_good, reorder(feature, -frequency))
+```
+```{r}
+ggplot(features_good, aes(x = feature, y = frequency)) +
+  geom_point(color="red") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Frequency plot of most frequently occuring words in good reviews")
+```
+```{r}
+#separating Train and test data
+yelp.train<-yelp[1:8500,]
+yelp.test<-yelp[8500:nrow(yelp),]
+```
+```{r}
+text.dfm <- dfm(comm.corpus, tolower = TRUE)  #generating document freq matrix
+text.dfm <- dfm_trim(text.dfm, min_count = 5, min_docfreq = 3)  
+text.dfm <- dfm_weight(text.dfm) 
+```
+```{r}
+#training and testing data of dfm 
+text.dfm.train<-text.dfm[1:8500,]
+
+text.dfm.test<-text.dfm[8500:nrow(yelp),]
+```
+```{r}
+##Naive Baiye's classifier
+nb.classifier<-textmodel_nb(text.dfm.train,yelp.train[,3])
+nb.classifier
+```
+
+```{r}
+pred<-predict(nb.classifier,text.dfm.test)
+```
+```{r}
+table1<-table(predicted=pred$nb.predicted,actual=yelp.test[,3])
+View(table1)
+acc_nb=mean(pred$nb.predicted==yelp.test[,3])*100
+print(acc_nb)
+```
+```{r}
+prednum<-ifelse(pred$nb.predicted=="bad",1,2)
+print(prednum)
+```
+
+```{r}
+auc<-roc(as.factor(yelp.test[,3]),prednum)
+plot(auc)
+auc$auc
+```
+
+
+
+
+
